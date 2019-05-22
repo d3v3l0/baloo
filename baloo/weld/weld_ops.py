@@ -475,14 +475,16 @@ def _weld_sort(arrays, weld_types, ascending=True):
     weld_obj_vec_of_struct_id = get_weld_obj_id(weld_obj, weld_obj_vec_of_struct)
 
     types = struct_of('{e}', weld_types)
-    # TODO: update here when sorting on structs is possible
-    ascending_sort_func = '{}'.format(', '.join(('e.${}'.format(i) for i in range(1, len(arrays)))))
-    zero_literals = dict(enumerate([to_weld_literal(0, weld_type) for weld_type in weld_types]))
-    descending_sort_func = '{}'.format(', '.join(('{} - e.${}'.format(zero_literals[i], i)
-                                                  for i in range(1, len(arrays)))))
-    sort_func = ascending_sort_func if ascending else descending_sort_func
 
-    weld_template = 'sort({struct}, |e: {types}| {sort_func})'
+    left_operand = 'let e1_tmp = {};'.format(', '.join(('e1.${}'.format(i) for i in range(1, len(arrays)))))
+    right_operand = 'let e2_tmp = {};'.format(', '.join(('e2.${}'.format(i) for i in range(1, len(arrays)))))
+    comparator = "(compare(e1_tmp, e2_tmp))"
+    if ascending:
+        sort_func = left_operand + right_operand + comparator
+    else:
+        sort_func = left_operand + right_operand + "-" + comparator
+
+    weld_template = 'sort({struct}, |e1: {types}, e2: {types}| {sort_func})'
 
     weld_obj.weld_code = weld_template.format(struct=weld_obj_vec_of_struct_id,
                                               types=types,

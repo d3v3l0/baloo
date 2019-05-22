@@ -5,7 +5,7 @@ of [Pandas](https://pandas.pydata.org/) with the *lazy* evaluating
 and optimizing [Weld](https://github.com/weld-project/weld) framework.
 
 [![PyPI version](https://badge.fury.io/py/baloo.svg)](https://badge.fury.io/py/baloo)
-[![Build Status](https://travis-ci.com/radujica/baloo.svg?branch=master)](https://travis-ci.com/radujica/baloo)
+[![Build Status](https://travis-ci.com/weld-project/baloo.svg?branch=master)](https://travis-ci.com/weld-project/baloo)
 
 ### Documentation [here](https://radujica.github.io/baloo/)
 

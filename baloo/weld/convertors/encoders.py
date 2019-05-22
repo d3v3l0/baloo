@@ -3,7 +3,7 @@ import ctypes
 import numpy as np
 
 from .utils import to_weld_vec
-from ..pyweld.types import *
+from ..pyweld.weldtypes import *
 from ..pyweld.weldobject import WeldObjectDecoder, WeldObjectEncoder, cweld
 from ...config import ENCODERS_PATH
 

@@ -1,6 +1,6 @@
 from .cache import Cache
 from .convertors import NumPyEncoder, NumPyDecoder
-from .pyweld.types import WeldInt16, WeldLong, WeldFloat, WeldBit, WeldDouble, WeldInt
+from .pyweld.weldtypes import WeldInt16, WeldLong, WeldFloat, WeldBit, WeldDouble, WeldInt
 from .pyweld.weldobject import WeldObject
 
 _encoder = NumPyEncoder()
@@ -197,17 +197,8 @@ def weld_combine_scalars(scalars, weld_type):
     """
     weld_obj = create_empty_weld_object()
     obj_ids = (get_weld_obj_id(weld_obj, scalar) for scalar in scalars)
-
-    merges = '\n'.join(('let res = merge(res, {});'.format(obj_id) for obj_id in obj_ids))
-
-    weld_template = """let res = appender[{type}];
-{merges}
-result(res)
-"""
-
-    weld_obj.weld_code = weld_template.format(type=weld_type,
-                                              merges=merges)
-
+    values = "[" + ', '.join(('{}'.format(obj_id) for obj_id in obj_ids)) + "]";
+    weld_obj.weld_code = values
     return weld_obj
 
 

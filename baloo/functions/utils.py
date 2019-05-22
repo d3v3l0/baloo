@@ -5,19 +5,19 @@ from os import RTLD_GLOBAL
 from ..weld import WeldObject
 
 
-def load_cudf(path_to_so):
+def load_cudf(path_to_lib):
     """Dynamically load a C UDF.
 
     Parameters
     ----------
-    path_to_so : str
-        Absolute path to so.
+    path_to_lib : str
+        Absolute path to dynamic library.
 
     Returns
     -------
 
     """
-    CDLL(path_to_so, mode=RTLD_GLOBAL)
+    CDLL(path_to_lib, mode=RTLD_GLOBAL)
 
 
 def raw(func, **func_args):

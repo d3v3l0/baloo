@@ -117,9 +117,9 @@ class DataFrame(BinaryOps, BalooCommon):
     >>> print(bl.DataFrame({'a': [0, 1, 1, 2], 'b': [1, 2, 3, 4]}).groupby('a').sum().evaluate())
       a    b
     ---  ---
+      1    5
       0    1
       2    4
-      1    5
 
     """
     _empty_text = 'Empty DataFrame'

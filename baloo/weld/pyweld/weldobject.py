@@ -4,7 +4,7 @@ import ctypes
 import time
 
 from . import bindings as cweld
-from .types import *
+from .weldtypes import *
 
 
 class WeldObjectEncoder(object):

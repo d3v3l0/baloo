@@ -24,6 +24,10 @@ class c_weld_value(c_void_p):
     pass
 
 
+class c_weld_context(c_void_p):
+    pass
+
+
 class WeldModule(c_void_p):
     def __init__(self, code, conf, err):
         weld_module_compile = weld.weld_module_compile
@@ -31,17 +35,26 @@ class WeldModule(c_void_p):
         weld_module_compile.restype = c_weld_module
 
         code = c_char_p(code.encode('ascii'))
-
         self.module = weld_module_compile(code, conf.conf, err.error)
 
     def run(self, conf, arg, err):
-        weld_module_run = weld.weld_module_run
-        # module, conf, arg, &err
-        weld_module_run.argtypes = [c_weld_module, c_weld_conf, c_weld_value, c_weld_err]
-        weld_module_run.restype = c_weld_value
-        ret = weld_module_run(self.module, conf.conf, arg.val, err.error)
+        """
+        WeldContext is currently hidden from the Python API. We create a new
+        context per Weld run and give ownership of it to the resulting value.
 
-        return WeldValue(ret, assign=True)
+        NOTE: This can leak the context if the result of the Weld run is an
+        error.
+        """
+        weld_context_new = weld.weld_context_new
+        weld_context_new.argtypes = [c_weld_conf]
+        weld_context_new.restype = c_weld_context
+        ctx = weld_context_new(conf.conf)
+
+        weld_module_run = weld.weld_module_run
+        weld_module_run.argtypes = [c_weld_module, c_weld_context, c_weld_value, c_weld_err]
+        weld_module_run.restype = c_weld_value
+        ret = weld_module_run(self.module, ctx, arg.val, err.error)
+        return WeldValue(ret, assign=True, _ctx=ctx)
 
     def __del__(self):
         weld_module_free = weld.weld_module_free
@@ -51,14 +64,16 @@ class WeldModule(c_void_p):
 
 
 class WeldValue(c_void_p):
-    def __init__(self, value, assign=False):
+    def __init__(self, value, assign=False, _ctx=None):
         if assign is False:
             weld_value_new = weld.weld_value_new
             weld_value_new.argtypes = [c_void_p]
             weld_value_new.restype = c_weld_value
-            value = weld_value_new(value)
+            self.val = weld_value_new(value)
+        else:
+            self.val = value
 
-        self.val = value
+        self._ctx = _ctx
         self.freed = False
 
     def _check(self):
@@ -70,7 +85,6 @@ class WeldValue(c_void_p):
         weld_value_data = weld.weld_value_data
         weld_value_data.argtypes = [c_weld_value]
         weld_value_data.restype = c_void_p
-
         return weld_value_data(self.val)
 
     def memory_usage(self):
@@ -78,7 +92,6 @@ class WeldValue(c_void_p):
         weld_value_memory_usage = weld.weld_value_memory_usage
         weld_value_memory_usage.argtypes = [c_weld_value]
         weld_value_memory_usage.restype = c_int64
-
         return weld_value_memory_usage(self.val)
 
     def free(self):
@@ -87,8 +100,15 @@ class WeldValue(c_void_p):
         weld_value_free.argtypes = [c_weld_value]
         weld_value_free.restype = None
 
-        self.freed = True
+        # One context per value for now -- free the context if there is one.
+        if self._ctx != None:
+            weld_context_free = weld.weld_context_free
+            weld_context_free.argtypes = [c_weld_context]
+            weld_context_free.restype = None
+            weld_context_free(self._ctx)
+            self._ctx = None
 
+        self.freed = True
         return weld_value_free(self.val)
 
 
@@ -97,7 +117,6 @@ class WeldConf(c_void_p):
         weld_conf_new = weld.weld_conf_new
         weld_conf_new.argtypes = []
         weld_conf_new.restype = c_weld_conf
-
         self.conf = weld_conf_new()
 
     def get(self, key):
@@ -106,7 +125,6 @@ class WeldConf(c_void_p):
         weld_conf_get.argtypes = [c_weld_conf, c_char_p]
         weld_conf_get.restype = c_char_p
         val = weld_conf_get(self.conf, key)
-
         return copy.copy(val)
 
     def set(self, key, value):
@@ -121,7 +139,6 @@ class WeldConf(c_void_p):
         weld_conf_free = weld.weld_conf_free
         weld_conf_free.argtypes = [c_weld_conf]
         weld_conf_free.restype = None
-
         weld_conf_free(self.conf)
 
 
@@ -130,14 +147,12 @@ class WeldError(c_void_p):
         weld_error_new = weld.weld_error_new
         weld_error_new.argtypes = []
         weld_error_new.restype = c_weld_err
-
         self.error = weld_error_new()
 
     def code(self):
         weld_error_code = weld.weld_error_code
         weld_error_code.argtypes = [c_weld_err]
         weld_error_code.restype = c_uint64
-
         return weld_error_code(self.error)
 
     def message(self):
@@ -145,7 +160,6 @@ class WeldError(c_void_p):
         weld_error_message.argtypes = [c_weld_err]
         weld_error_message.restype = c_char_p
         val = weld_error_message(self.error)
-
         return copy.copy(val)
 
     def __del__(self):
